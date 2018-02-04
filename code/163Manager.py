@@ -7,6 +7,7 @@ import requests
 FileFormat = ['mp3', "wma", 'flac', 'wav', 'aac', 'dsd', 'ape', 'mqa', 'MP3', 'WMA', 'FLAC', 'WAV', 'AAC', 'DSD', 'APE',
 			  'MQA']
 MusicNameList = []
+ErrorList = []  # 未能成功匹配的歌曲信息[列表内的标号，歌曲名]
 
 
 # 半角符号全部升级为全角
@@ -97,9 +98,10 @@ def GetExistsFileAbsPathList (path):
 			if format in FileFormat:
 				isMatching = False
 				num = len(MusicNameList)
+				No = 0
 				for No in range(num):
 					if compare(MusicNameList[No], name):
-						FileAbsPathList.append({"No": No, "Path": thisPath})#增加歌单顺序Key='No'
+						FileAbsPathList.append({"No": No, "Path": thisPath})  # 增加歌单顺序Key='No'
 						isMatching = True
 						break
 					else:
@@ -115,9 +117,11 @@ def GetExistsFileAbsPathList (path):
 					pass
 				'''
 				if not isMatching:
-					print("  Error Name:" + p)
+					# print("  Error Name:" + p)
+					pass
 			else:
-				print("   Error Format:" + p)
+				#print("   Error Format:" + p)
+				pass
 			pass
 		elif os.path.isdir(thisPath):
 			# 如果是目录
@@ -125,16 +129,25 @@ def GetExistsFileAbsPathList (path):
 			pass
 	return FileAbsPathList
 
-#根据云歌单顺序进行本地歌单重排序
+
+# 根据云歌单顺序进行本地歌单重排序
 def SortAbsPathList (unorderedPathList):
-	orderedPathList = len(unorderedPathList) * [None]
+	length = len(MusicNameList)
+	orderedPathList = length * [None]
 	for iter in unorderedPathList:
 		No = iter['No']
 		orderedPathList[No] = iter
+
+	# 获取未能成功匹配的歌曲列表
+	for i in range(0, length):
+		if orderedPathList[i] == None:
+			name = MusicNameList[i]['Singer'] + ' - ' + MusicNameList[i]['Song']
+			ErrorList.append({'No': i, 'Music': name})
+
 	return orderedPathList
 
 
-# 云歌单与本地音频文件进行匹配，返回匹配成功的音频地址列表
+# 云歌单与本地音频文件进行匹配，返回匹配成功的音频地址列表和未匹配到的歌曲列表
 # DirPath本地音频存放目录
 # MusicListId云歌单Id
 def getMusicAbsPathList (DirPath, MusicListId):
@@ -143,8 +156,14 @@ def getMusicAbsPathList (DirPath, MusicListId):
 	for it in MusicNameList:
 		print(it)
 	unorderedPathList = GetExistsFileAbsPathList(DirPath)
+	print("ExistsPath:")
+	for it in unorderedPathList:
+		print(it)
 	orderedPathList = SortAbsPathList(unorderedPathList)
 	print(len(orderedPathList))
 	for it in orderedPathList:
 		print(it)
-	return orderedPathList
+	print("Error Music")
+	for it in ErrorList:
+		print(it)
+	return orderedPathList,ErrorList
