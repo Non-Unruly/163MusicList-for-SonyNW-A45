@@ -15,3 +15,8 @@
 
 第四阶段：自动从网易云服务器上匹配歌词信息并导入A45上
 
+
+Python3.6
+Moudle:
+1.requests(cmd: pip3 install requests)
+2.requests(cmd: pip3 install PyQt5)
