@@ -18,6 +18,8 @@ def CharacterCodeUnify (data):
 			num = ord(ch) + 65248
 			ch = chr(num)
 		newData += ch
+	newData = newData.lower()  # 统一小写匹配
+	newData = ''.join(newData.split(' '))
 	return newData
 
 
@@ -120,7 +122,7 @@ def GetExistsFileAbsPathList (path):
 					# print("  Error Name:" + p)
 					pass
 			else:
-				#print("   Error Format:" + p)
+				# print("   Error Format:" + p)
 				pass
 			pass
 		elif os.path.isdir(thisPath):
@@ -166,4 +168,4 @@ def getMusicAbsPathList (DirPath, MusicListId):
 	print("Error Music")
 	for it in ErrorList:
 		print(it)
-	return orderedPathList,ErrorList
+	return orderedPathList, ErrorList
