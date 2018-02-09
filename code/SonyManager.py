@@ -1,6 +1,5 @@
 import Netease163Manager
 
-
 def CreateM3u_inside(m2uPath, playList):
     hFile = open(m2uPath, 'w+', encoding='utf-8')
     hFile.write('#EXTM3U\n')
@@ -33,5 +32,6 @@ def CreateLRC(netList):
     pass
 
 
-netList, ErrorList = Netease163Manager.getMusicAbsPathList('H:\\MUSIC\\女声古风', '920755371')
-CreateLRC(netList)
+
+# netList, ErrorList = Netease163Manager.getMusicAbsPathList('H:\\MUSIC\\女声古风', '920755371')
+# CreateLRC(netList)

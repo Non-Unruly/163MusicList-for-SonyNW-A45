@@ -64,14 +64,17 @@ def requestGetList(id):
     data = requests.get(url, headers=headers)
     print(data.status_code)
     print(data.headers, end="\n\n\n")
-    return data.text
+    info = json.loads(data.text)
+    res = info.get('result', None)
+    print(res)
+    if res == None:
+        return None
+    return info
 
 
 # 获取歌单内的全部歌曲的本地文件名
 def GetMusicNameList(id):
-    # data=requestGetList(id)
-    data = requestGetList(id)
-    listJson = json.loads(data)
+    listJson = requestGetList(id)
     list = listJson['result']['tracks']
     for item in list:
         Song = item['name']
@@ -116,16 +119,17 @@ def GetExistsFileAbsPathList(path):
                 for No in range(num):
                     if compare(MusicNameList[No], name):
                         FileAbsPathList.append(
-                            {"No": No, "Path": thisPath, "id": MusicNameList[No]['id']})  # 增加歌单顺序Key='No'
+                            {"No": No, "Path": thisPath, "id": MusicNameList[No]['id'], 'Name': str('%s - %s') % (
+                                MusicNameList[No]['Singer'], MusicNameList[No]['Song'])})  # 增加歌单顺序Key='No'
                         isMatching = True
                         break
                     else:
                         continue
                 if not isMatching:
-                    print("  Error Name:" + p)
+                    # print("  Error Name:" + p)
                     pass
             else:
-                print("   Error Format:" + p)
+                # print("   Error Format:" + p)
                 pass
             pass
         elif os.path.isdir(thisPath):
@@ -147,7 +151,7 @@ def SortAbsPathList(unorderedPathList):
     for i in range(0, length):
         if orderedPathList[i] == None:
             name = MusicNameList[i]['Singer'] + ' - ' + MusicNameList[i]['Song']
-            ErrorList.append({'No': i, 'Music': name})
+            ErrorList.append({'No': i, 'Name': name})
 
     return orderedPathList
 
@@ -157,21 +161,21 @@ def SortAbsPathList(unorderedPathList):
 # MusicListId云歌单Id
 def getMusicAbsPathList(DirPath, MusicListId):
     MusicNameList = GetMusicNameList(MusicListId)
-    print("MusicNameList:")
-    for it in MusicNameList:
-        print(it)
     unorderedPathList = GetExistsFileAbsPathList(DirPath)
-    print("\nExistsPath:")
-    for it in unorderedPathList:
-        print(it)
     orderedPathList = SortAbsPathList(unorderedPathList)
-    print("匹配成功列表 %d" % (len(orderedPathList)))
-    for it in orderedPathList:
-        print(it)
-    print("\nError Music %d" % (len(ErrorList)))
-    for it in ErrorList:
-        print(it)
-    print("\nError Music end\n")
+    # print("MusicNameList:")
+    # for it in MusicNameList:
+    #     print(it)
+    # print("\nExistsPath:")
+    # for it in unorderedPathList:
+    #     print(it)
+    # print("匹配成功列表 %d" % (len(orderedPathList)))
+    # for it in orderedPathList:
+    #     print(it)
+    # print("\nError Music %d" % (len(ErrorList)))
+    # for it in ErrorList:
+    #     print(it)
+    # print("\nError Music end\n")
     return orderedPathList, ErrorList
 
 
@@ -201,3 +205,11 @@ def getMusicLyric(id, path):
     hFile.close()
     return True
     pass
+
+
+# list1, list2 = getMusicAbsPathList('D:\\Mr.Shi\\163music', '615146628')
+# res = requestGetList('615146628')
+# data = json.loads(res)
+# hFile = open("d:\\txt.txt", 'w+')
+# hFile.write(res)
+# hFile.close()
