@@ -1,22 +1,25 @@
 import json
 import sys
-
+import Moudle163
+import SonyManager
 from PyQt5.QtWidgets import QApplication, QWidget, QFileDialog, QHeaderView, QTableWidgetItem, QMessageBox, \
-	QAbstractItemView, QCheckBox
+	QAbstractItemView
 from PyQt5.uic import loadUi
 
-import Netease163Manager
+import StateCode
+import _thread
 
 
 class UI(QWidget):
 	def __init__ (self):
 		super(QWidget, self).__init__()
 		loadUi("gui.ui", self)
+		self.list = [None]
+
 		self.initData()
 		self.initUI()
 		self.initBinding()
-
-		pass
+		return
 
 	def initUI (self):
 		self.setWindowTitle('Netease163Music-tool for Sony Player v1.0 ------  By BM_Recluse')
@@ -32,15 +35,15 @@ class UI(QWidget):
 		self.tableWidget.setColumnWidth(0, 40)
 		self.tableWidget.setColumnWidth(3, 80)
 		self.tableWidget.setColumnWidth(4, 80)
+		self.tableWidget.setColumnWidth(5, 80)
 		self.tableWidget.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
 		self.tableWidget.horizontalHeader().setSectionResizeMode(2, QHeaderView.Stretch)
 		self.tableWidget.verticalHeader().setVisible(False)
 		self.tableWidget.setSelectionBehavior(QAbstractItemView.SelectRows)
 
-		# self.txt_musicDir.setText('d:\\Mr.Shi\\163music')
-		# self.ListID.setText('615146628')
-
-		pass
+		self.btn_findLocalMusic.setEnabled(False)
+		self.btn_Lrc.setEnabled(False)
+		return
 
 	def initData (self):
 		try:
@@ -57,72 +60,59 @@ class UI(QWidget):
 		except BaseException:
 			self.m_musicDir = ''
 			self.m_playerDir = ''
-		return;
-		pass
+		return
 
 	def initBinding (self):
 		self.btn_chooseMusicPath.clicked.connect(self.slot_chooseMusicPath)
 		self.btn_choosePlayerPath.clicked.connect(self.slot_choosePlayerPath)
 		self.btn_findMusic.clicked.connect(self.slot_findMusic)
-		pass
+		self.btn_copyMusic.clicked.connect(self.slot_copyMusic)
+		self.btn_findLocalMusic.clicked.connect(self.slot_findLocalMusic)
+		self.btn_Lrc.clicked.connect(self.slot_createLrc)
+		return
 
 	def slot_chooseMusicPath (self):
 		dir = QFileDialog.getExistingDirectory()
 		self.txt_musicDir.setText(dir)
-		pass
+		return
 
 	def slot_choosePlayerPath (self):
 		dir = QFileDialog.getExistingDirectory()
 		self.txt_playerDir.setText(dir)
-		pass
+		return
 
 	def slot_findMusic (self):
 		findPath = self.txt_musicDir.text()
 		listid = self.ListID.text()
 		if len(findPath) == 0 or len(listid) == 0:
-			print("dsfsdf")
 			QMessageBox.critical(self, "提示", '信息不完整')
 			return
 		self.tableWidget.clearSpans()
-		self.writeConfig(findPath, self.txt_playerDir.text())
+		self.writeConfig(self.txt_musicDir.text(), self.txt_playerDir.text())
 
-		isLrc = False
-		if self.isLrc.checkState() != 0:
-			isLrc = True
-		res, list1, list2, ListName, Creator = Netease163Manager.GetNeteasMusicRes(listid, findPath, isLrc)
-		# list1, list2 = Netease163Manager.getMusicAbsPathList(findPath, listid)
-		print(res)
-		if not res:
-			QMessageBox.warning(self, '错误', '未能找到歌单信息，请检查歌单ID')
-			return
-		tips = str('歌单名：%s   创建者：%s') % (ListName, Creator)
-		self.ListInfo.setText(tips)
-		self.tableWidget.setRowCount(len(list1))
-		sn = 0
-		for i in range(len(list1)):
-			if list1[i] == None:
-				for it in list2:
-					if it['No'] == i:
-						sn = i + 1
-						name = it['Name']
-						path = ''
-						isMusic = False
-						break
-			else:
-				sn = list1[i]['No'] + 1
-				name = list1[i]['Name']
-				path = list1[i]['Path']
-				isMusic = True
-			tmp = u'成功'
-			if not isMusic:
-				tmp = u'失败'
-			# self.itemList[i][4] = QTableWidgetItem(tmp)
-			self.tableWidget.setItem(i, 0, QTableWidgetItem(str("%d") % sn))
-			self.tableWidget.setItem(i, 1, QTableWidgetItem(name))
-			self.tableWidget.setItem(i, 2, QTableWidgetItem(path))
-			self.tableWidget.setItem(i, 3, QTableWidgetItem(tmp))
-		pass
+		_thread.start_new_thread(Moudle163.RequestList, (listid, self.CallBack))
+		return
 
+	def slot_copyMusic (self):
+		self.writeConfig(self.txt_musicDir.text(), self.txt_playerDir.text())
+		print("******")
+		for it in self.list:
+			print(it)
+		_thread.start_new_thread(SonyManager.CopyMusic, (self.list, self.txt_playerDir.text(), self.CallBack))
+		return
+
+	def slot_findLocalMusic (self):
+		path = self.txt_musicDir.text()
+		self.label_state.setText("正在匹配当中...")
+		_thread.start_new_thread(Moudle163.FindLocalMusic, (path, self.list, self.CallBack))
+		return
+
+	# 生成歌词按钮
+	def slot_createLrc (self):
+		_thread.start_new_thread(Moudle163.RequestLrc, (self.list, self.CallBack))
+		return
+
+	# 写入配置文件
 	def writeConfig (self, _musicDir, _playerDir):
 		try:
 			hFile = open("config.cfg", 'w+')
@@ -130,7 +120,98 @@ class UI(QWidget):
 			info = json.dumps(data)
 			hFile.write(str(info))
 			hFile.close()
-		except BaseException:
+		except BaseException as e:
+			QMessageBox.critical(self, '提示', str(e))
+		return
+
+	# 显示歌单信息
+	def listShowInTable (self, args):
+		try:
+			tips = str('歌单名：%s   创建者：%s') % (str(args['listname']), str(args['creator']))
+			self.ListInfo.setText(tips)
+			self.tableWidget.clearSpans()
+			self.list = args['list']
+			num = len(self.list)
+			self.tableWidget.setRowCount(num)
+			for sn in range(num):
+				it = self.list[sn]
+				song = it['song']
+				singer = it['singer']
+				no = it['no']
+				name = str("%s - %s" % (singer, song))
+				self.tableWidget.setItem(sn, 0, QTableWidgetItem(str("%d") % no))
+				self.tableWidget.setItem(sn, 1, QTableWidgetItem(name))
+
+			self.btn_findLocalMusic.setEnabled(True)
+		except BaseException as e:
+			QMessageBox.critical(self, '错误', str(e))
+		return
+
+	# 匹配地址显示
+	def pathShowInTable (self, args):
+		no = args['no']
+		path = args['path']
+		self.tableWidget.setItem(no, 2, QTableWidgetItem(path))
+		self.tableWidget.setItem(no, 3, QTableWidgetItem('匹配'))
+		self.tableWidget.setCurrentCell(no, 2)
+		for i in range(len(self.list)):
+			if self.list[i]['no'] == no:
+				self.list[i]['path'] = path
+				break
+		return
+
+	# 歌词匹配状态显示
+	def lrcShowInTable (self, args):
+		self.tableWidget.setItem(args['no'], 4, QTableWidgetItem(str("匹配")))
+		self.list[args['no']]['lrc'] = args['lrc']
+		self.tableWidget.setCurrentCell(args['no'], 4)
+		return
+
+	def copyState (self, args):
+		self.tableWidget.setItem(args['no'], 5, QTableWidgetItem("导入完成"))
+		self.tableWidget.setCurrentCell(args['no'], 5)
+		return
+
+	def UnknowError (self, args):
+		self.label_state.setText("未知错误")
+		return
+
+	def finishedCopy(self):
+		return
+
+	# 回调函数
+	def CallBack (self, code, args):
+		if code == StateCode.CallBackCode.MUSIC_LIST_RETURN:
+			self.listShowInTable(args)
+			pass
+		elif code == StateCode.CallBackCode.MUSIC_PATH_RETURN:
+			self.pathShowInTable(args)
+			pass
+		elif code == StateCode.CallBackCode.MUSIC_PATH_END:
+			self.label_state.setText("本地音频匹配完成")
+			self.btn_Lrc.setEnabled(True)
+			pass
+		elif code == StateCode.CallBackCode.MUSIC_SERACH_CURRENT:
+			self.label_state.setText(str("正在查找：%s") % (args))
+			pass
+		elif code == StateCode.CallBackCode.MUSIC_LRC_RETURN:
+			self.label_state.setText(str("正在匹配歌词：%s - %s") % (args['singer'], args['song']))
+			self.lrcShowInTable(args)
+			pass
+		elif code == StateCode.CallBackCode.MUSIC_LRC_FINISHED:
+			self.label_state.setText("歌词生成完成")
+			pass
+		elif code == StateCode.CallBackCode.UNKNOW_ERROR:
+			self.UnknowError(args)
+			pass
+		elif code == StateCode.CallBackCode.MUSIC_COPY_FILE:
+			self.copyState(args)
+			pass
+		elif code == StateCode.CallBackCode.MUSIC_COPY_ERROR:
+			self.UnknowError(args)
+			pass
+		elif code==StateCode.CallBackCode.MUSIC_COPY_FINISHED:
+			self.finishedCopy()
 			pass
 		return
 
@@ -139,3 +220,6 @@ qApp = QApplication(sys.argv)
 win = UI()
 win.show()
 sys.exit(qApp.exec())
+
+# 111007305
+# 615146628
