@@ -15,7 +15,8 @@ class UI(QWidget):
 		super(QWidget, self).__init__()
 		loadUi("gui.ui", self)
 		self.list = [None]
-
+		self.listName = ''
+		self.listCreator = ''
 		self.initData()
 		self.initUI()
 		self.initBinding()
@@ -82,6 +83,7 @@ class UI(QWidget):
 		return
 
 	def slot_findMusic (self):
+		self.btn_Lrc.setEnabled(False)
 		findPath = self.txt_musicDir.text()
 		listid = self.ListID.text()
 		if len(findPath) == 0 or len(listid) == 0:
@@ -95,10 +97,10 @@ class UI(QWidget):
 
 	def slot_copyMusic (self):
 		self.writeConfig(self.txt_musicDir.text(), self.txt_playerDir.text())
-		print("******")
 		for it in self.list:
 			print(it)
-		_thread.start_new_thread(SonyManager.CopyMusic, (self.list, self.txt_playerDir.text(), self.CallBack))
+		_thread.start_new_thread(SonyManager.CopyMusic,
+								 (self.list, self.txt_playerDir.text(), self.CallBack))
 		return
 
 	def slot_findLocalMusic (self):
@@ -128,6 +130,8 @@ class UI(QWidget):
 	def listShowInTable (self, args):
 		try:
 			tips = str('歌单名：%s   创建者：%s') % (str(args['listname']), str(args['creator']))
+			self.listName = args['listname']
+			self.listCreator = args['creator']
 			self.ListInfo.setText(tips)
 			self.tableWidget.clearSpans()
 			self.list = args['list']
@@ -170,13 +174,21 @@ class UI(QWidget):
 	def copyState (self, args):
 		self.tableWidget.setItem(args['no'], 5, QTableWidgetItem("导入完成"))
 		self.tableWidget.setCurrentCell(args['no'], 5)
+		self.label_state.setText(str('《%s-%s》导入完成') % (args['singer'], args['song']))
 		return
 
 	def UnknowError (self, args):
 		self.label_state.setText("未知错误")
 		return
 
-	def finishedCopy(self):
+	def finishedCopy (self):
+		self.label_state.setText("音频导入完成")
+		_thread.start_new_thread(SonyManager.CreateM3u_inside,
+								 (self.txt_playerDir.text(), self.list, self.listName, self.CallBack))
+		return
+
+	def finishedM3U (self):
+		self.label_state.setText("播放列表创建完成")
 		return
 
 	# 回调函数
@@ -210,8 +222,11 @@ class UI(QWidget):
 		elif code == StateCode.CallBackCode.MUSIC_COPY_ERROR:
 			self.UnknowError(args)
 			pass
-		elif code==StateCode.CallBackCode.MUSIC_COPY_FINISHED:
+		elif code == StateCode.CallBackCode.MUSIC_COPY_FINISHED:
 			self.finishedCopy()
+			pass
+		elif code == StateCode.CallBackCode.PLAYER_M2U_FINISHED:
+			self.finishedM3U()
 			pass
 		return
 
