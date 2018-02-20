@@ -45,8 +45,8 @@ def RequestList (id, callback):
 
 
 def RequestLrc (list, callback):
-	try:
-		for it in list:
+	for it in list:
+		try:
 			if len(it['path']) > 0:
 				url = 'http://music.163.com/api/song/lyric?os=pc&id=' + str(it['id']) + '&lv=1'
 				headers = {'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
@@ -60,7 +60,7 @@ def RequestLrc (list, callback):
 				res = json.loads(data.text)
 				isNoLrc = res.get('nolyric', False)
 				if isNoLrc:
-					callback(StateCode.CallBackCode.MUSIC_LRC_ERROR, it)
+					callback(StateCode.CallBackCode.MUSIC_LRC_NONE, it)
 				lrc = res['lrc']['lyric']
 				name, _format = splitNameFormat(it['path'])
 				lrcPath = name + '.lrc'
@@ -71,9 +71,8 @@ def RequestLrc (list, callback):
 				callback(StateCode.CallBackCode.MUSIC_LRC_RETURN, it)
 			else:
 				continue
-	except BaseException as e:
-		callback(StateCode.CallBackCode.UNKNOW_ERROR, e)
-		return
+		except BaseException as e:
+			callback(StateCode.CallBackCode.MUSIC_LRC_ERROR, {'music': it, 'info': e})
 	callback(StateCode.CallBackCode.MUSIC_LRC_FINISHED, None)
 	return
 
@@ -87,6 +86,7 @@ def FindLocalMusic (path, list, callback):
 			FindLocalMusic(thisPath, list, callback)
 		elif (os.path.isfile(thisPath)):
 			# 如果是文件
+			print('----' + thisPath)
 			name, format = splitNameFormat(p)
 			callback(StateCode.CallBackCode.MUSIC_SERACH_CURRENT, p)
 			if format in FileFormat:

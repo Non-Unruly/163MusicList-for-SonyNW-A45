@@ -2,12 +2,13 @@ import json
 import sys
 import Moudle163
 import SonyManager
+import time
 from PyQt5.QtWidgets import QApplication, QWidget, QFileDialog, QHeaderView, QTableWidgetItem, QMessageBox, \
 	QAbstractItemView
 from PyQt5.uic import loadUi
 
 import StateCode
-import _thread
+import threading
 
 
 class UI(QWidget):
@@ -17,19 +18,20 @@ class UI(QWidget):
 		self.list = [None]
 		self.listName = ''
 		self.listCreator = ''
+		
 		self.initData()
 		self.initUI()
 		self.initBinding()
 		return
 
 	def initUI (self):
-		self.setWindowTitle('Netease163Music-tool for Sony Player v1.0 ------  By BM_Recluse')
+		self.setWindowTitle('索尼walkman导入网易云歌单歌词工具 ------  By BM_Recluse')
 		self.setLayout(self.mainLayout)
 		self.pathWidget.setLayout(self.pathLayout)
 		self.pushWidget.setLayout(self.pushLayout)
 		self.txt_musicDir.setPlaceholderText('网易云音乐本地下载目录')
-		self.txt_playerDir.setPlaceholderText('索尼播放器目录')
-		self.ListID.setPlaceholderText('歌单ID')
+		self.txt_playerDir.setPlaceholderText('索尼播放器目录（MUSIC目录）')
+		self.ListID.setPlaceholderText('网易云歌单链接')
 		self.txt_musicDir.setText(self.m_musicDir)
 		self.txt_playerDir.setText(self.m_playerDir)
 
@@ -44,6 +46,8 @@ class UI(QWidget):
 
 		self.btn_findLocalMusic.setEnabled(False)
 		self.btn_Lrc.setEnabled(False)
+
+		self.setFixedSize(580, 390)
 		return
 
 	def initData (self):
@@ -89,29 +93,42 @@ class UI(QWidget):
 		if len(findPath) == 0 or len(listid) == 0:
 			QMessageBox.critical(self, "提示", '信息不完整')
 			return
+		# https://music.163.com/playlist?id=1983803378&userid=94727845
+		index = listid.find('id=')
+		if index == -1:
+			self.CallBack(StateCode.CallBackCode.UNKNOW_ERROR, None)
+			return
+		index += 3
+		idstr = ''
+		while True:
+			if ord(listid[index]) >= ord('0') and ord(listid[index]) <= ord('9'):
+				idstr += listid[index]
+				index += 1
+			else:
+				break
 		self.tableWidget.clearSpans()
+		self.tableWidget.setRowCount(0)
+		self.tableWidget.clearContents()
 		self.writeConfig(self.txt_musicDir.text(), self.txt_playerDir.text())
 
-		_thread.start_new_thread(Moudle163.RequestList, (listid, self.CallBack))
+		threading._start_new_thread(Moudle163.RequestList, (idstr, self.CallBack))
 		return
 
 	def slot_copyMusic (self):
 		self.writeConfig(self.txt_musicDir.text(), self.txt_playerDir.text())
-		for it in self.list:
-			print(it)
-		_thread.start_new_thread(SonyManager.CopyMusic,
+		threading._start_new_thread(SonyManager.CopyMusic,
 								 (self.list, self.txt_playerDir.text(), self.CallBack))
 		return
 
 	def slot_findLocalMusic (self):
 		path = self.txt_musicDir.text()
 		self.label_state.setText("正在匹配当中...")
-		_thread.start_new_thread(Moudle163.FindLocalMusic, (path, self.list, self.CallBack))
+		threading._start_new_thread(Moudle163.FindLocalMusic, (path, self.list, self.CallBack))
 		return
 
 	# 生成歌词按钮
 	def slot_createLrc (self):
-		_thread.start_new_thread(Moudle163.RequestLrc, (self.list, self.CallBack))
+		threading._start_new_thread(Moudle163.RequestLrc, (self.list, self.CallBack))
 		return
 
 	# 写入配置文件
@@ -136,7 +153,10 @@ class UI(QWidget):
 			self.tableWidget.clearSpans()
 			self.list = args['list']
 			num = len(self.list)
-			self.tableWidget.setRowCount(num)
+			if num < 10:
+				self.tableWidget.setRowCount(10)
+			else:
+				self.tableWidget.setRowCount(num)
 			for sn in range(num):
 				it = self.list[sn]
 				song = it['song']
@@ -145,7 +165,7 @@ class UI(QWidget):
 				name = str("%s - %s" % (singer, song))
 				self.tableWidget.setItem(sn, 0, QTableWidgetItem(str("%d") % no))
 				self.tableWidget.setItem(sn, 1, QTableWidgetItem(name))
-
+				self.tableWidget.setRowHeight(num, 15)
 			self.btn_findLocalMusic.setEnabled(True)
 		except BaseException as e:
 			QMessageBox.critical(self, '错误', str(e))
@@ -179,20 +199,55 @@ class UI(QWidget):
 
 	def UnknowError (self, args):
 		self.label_state.setText("未知错误")
+		self.writeLog('未知错误', str(args))
 		return
 
+	# 完成歌曲导入
 	def finishedCopy (self):
 		self.label_state.setText("音频导入完成")
-		_thread.start_new_thread(SonyManager.CreateM3u_inside,
+		threading._start_new_thread(SonyManager.CreateM3U_inside,
 								 (self.txt_playerDir.text(), self.list, self.listName, self.CallBack))
 		return
 
+	# 播放列表创建成功
 	def finishedM3U (self):
 		self.label_state.setText("播放列表创建完成")
 		return
 
+	# 无歌词信息
+	def noLrc (self, args):
+		no = args['no']
+		self.tableWidget.setItem(no, 4, QTableWidgetItem('无歌词'))
+		self.tableWidget.setCurrentCell(no)
+		return
+
+	# 匹配歌词出现错误
+	def errorLrc (self, args):
+		music = args['music']
+		errorinfo = args['info']
+		no = music['no']
+		self.tableWidget.setItem(no, 4, QTableWidgetItem('失败'))
+		self.tableWidget.setCurrentCell(no)
+		self.writeLog('errorLog', str(errorinfo))
+		return
+
+	# 日志
+	def writeLog (self, flag, str):
+		try:
+			timestr = time.asctime(time.localtime(time.time()))
+			hFile = open('log.txt', 'a+')
+			info = str("%s  %s  %s" % (str(timestr), flag, str))
+			hFile.write(info)
+			hFile.write('\n')
+			hFile.close()
+		except BaseException as e:
+			self.label_state.setText("日志错误" + str(e))
+		return
+
 	# 回调函数
 	def CallBack (self, code, args):
+		mutex = threading.Lock()
+		mutex.acquire()
 		if code == StateCode.CallBackCode.MUSIC_LIST_RETURN:
 			self.listShowInTable(args)
 			pass
@@ -228,6 +283,13 @@ class UI(QWidget):
 		elif code == StateCode.CallBackCode.PLAYER_M2U_FINISHED:
 			self.finishedM3U()
 			pass
+		elif code == StateCode.CallBackCode.MUSIC_LRC_NONE:
+			self.noLrc(args)
+			pass
+		elif code == StateCode.CallBackCode.MUSIC_LRC_ERROR:
+			self.errorLrc(args)
+			pass
+		mutex.release()
 		return
 
 

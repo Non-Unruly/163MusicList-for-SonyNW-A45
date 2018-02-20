@@ -3,7 +3,7 @@ import shutil
 import StateCode
 
 
-def CreateM3u_inside (m3uPath, playList, listname, callback):
+def CreateM3U_inside (m3uPath, playList, listname, callback):
 	try:
 		illegal = """/\"?|:<>*"""
 		filename = ''
@@ -20,12 +20,13 @@ def CreateM3u_inside (m3uPath, playList, listname, callback):
 				continue
 			# print(iter['Path'])
 			data = iter['path'].split('/')
-			length = len(data)
-			path = ''
-			for i in range(2, length):
-				path += data[i]
-				if i < length - 1:
-					path += '/'
+			path = data[-1]
+			# length = len(data)
+			# path = ''
+			# for i in range(2, length):
+			# 	path += data[i]
+			# 	if i < length - 1:
+			# 		path += '/'
 			hFile.write('#EXTINF:,\n')
 			hFile.write(path)
 			hFile.write('\n')
