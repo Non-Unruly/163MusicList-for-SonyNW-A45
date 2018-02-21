@@ -14,18 +14,20 @@ import threading
 class UI(QWidget):
 	def __init__ (self):
 		super(QWidget, self).__init__()
-		loadUi("gui.ui", self)
+		loadUi("gui.bmui", self)
 		self.list = [None]
 		self.listName = ''
 		self.listCreator = ''
-		
+
 		self.initData()
 		self.initUI()
 		self.initBinding()
 		return
 
 	def initUI (self):
-		self.setWindowTitle('索尼walkman导入网易云歌单歌词工具 ------  By BM_Recluse')
+		self.ListInfo.setText("本工具仅做个人学习python使用，不进行任何盈利行为")
+		self.label_state.setText("无节操测试版版本，不定时抽风，如有BUG，纯属故意")
+		self.setWindowTitle('索尼walkman导入网易云歌单歌词工具v0.233 ------  By BM_Recluse')
 		self.setLayout(self.mainLayout)
 		self.pathWidget.setLayout(self.pathLayout)
 		self.pushWidget.setLayout(self.pushLayout)
@@ -87,6 +89,7 @@ class UI(QWidget):
 		return
 
 	def slot_findMusic (self):
+		self.list.clear()
 		self.btn_Lrc.setEnabled(False)
 		findPath = self.txt_musicDir.text()
 		listid = self.ListID.text()
@@ -117,13 +120,16 @@ class UI(QWidget):
 	def slot_copyMusic (self):
 		self.writeConfig(self.txt_musicDir.text(), self.txt_playerDir.text())
 		threading._start_new_thread(SonyManager.CopyMusic,
-								 (self.list, self.txt_playerDir.text(), self.CallBack))
+									(self.list, self.txt_playerDir.text(), self.CallBack))
 		return
 
 	def slot_findLocalMusic (self):
-		path = self.txt_musicDir.text()
-		self.label_state.setText("正在匹配当中...")
-		threading._start_new_thread(Moudle163.FindLocalMusic, (path, self.list, self.CallBack))
+		try:
+			path = self.txt_musicDir.text()
+			self.label_state.setText("正在匹配当中...")
+			threading._start_new_thread(Moudle163.FindLocalMusic, (path, self.list, self.CallBack))
+		except BaseException as e:
+			print(e)
 		return
 
 	# 生成歌词按钮
@@ -173,22 +179,28 @@ class UI(QWidget):
 
 	# 匹配地址显示
 	def pathShowInTable (self, args):
-		no = args['no']
-		path = args['path']
-		self.tableWidget.setItem(no, 2, QTableWidgetItem(path))
-		self.tableWidget.setItem(no, 3, QTableWidgetItem('匹配'))
-		self.tableWidget.setCurrentCell(no, 2)
-		for i in range(len(self.list)):
-			if self.list[i]['no'] == no:
-				self.list[i]['path'] = path
-				break
+		try:
+			no = args['no']
+			path = args['path']
+			self.tableWidget.setItem(no, 2, QTableWidgetItem(path))
+			self.tableWidget.setItem(no, 3, QTableWidgetItem('匹配'))
+			# self.tableWidget.setCurrentCell(no, 2)
+			for i in range(len(self.list)):
+				if self.list[i]['no'] == no:
+					self.list[i]['path'] = path
+					break
+		except BaseException as e:
+			print(e)
 		return
 
 	# 歌词匹配状态显示
 	def lrcShowInTable (self, args):
-		self.tableWidget.setItem(args['no'], 4, QTableWidgetItem(str("匹配")))
-		self.list[args['no']]['lrc'] = args['lrc']
-		self.tableWidget.setCurrentCell(args['no'], 4)
+		try:
+			self.tableWidget.setItem(args['no'], 4, QTableWidgetItem(str("匹配")))
+			self.list[args['no']]['lrc'] = args['lrc']
+			self.tableWidget.setCurrentCell(args['no'], 4)
+		except BaseException as e:
+			print(e)
 		return
 
 	def copyState (self, args):
@@ -206,7 +218,7 @@ class UI(QWidget):
 	def finishedCopy (self):
 		self.label_state.setText("音频导入完成")
 		threading._start_new_thread(SonyManager.CreateM3U_inside,
-								 (self.txt_playerDir.text(), self.list, self.listName, self.CallBack))
+									(self.txt_playerDir.text(), self.list, self.listName, self.CallBack))
 		return
 
 	# 播放列表创建成功
@@ -216,32 +228,42 @@ class UI(QWidget):
 
 	# 无歌词信息
 	def noLrc (self, args):
+		print(args)
 		no = args['no']
 		self.tableWidget.setItem(no, 4, QTableWidgetItem('无歌词'))
-		self.tableWidget.setCurrentCell(no)
+		self.tableWidget.setCurrentCell(no, 4)
 		return
 
 	# 匹配歌词出现错误
 	def errorLrc (self, args):
+		print(args)
 		music = args['music']
 		errorinfo = args['info']
 		no = music['no']
 		self.tableWidget.setItem(no, 4, QTableWidgetItem('失败'))
-		self.tableWidget.setCurrentCell(no)
+		self.tableWidget.setCurrentCell(no, 4)
 		self.writeLog('errorLog', str(errorinfo))
 		return
 
 	# 日志
-	def writeLog (self, flag, str):
+	def writeLog (self, flag, _str):
 		try:
 			timestr = time.asctime(time.localtime(time.time()))
-			hFile = open('log.txt', 'a+')
-			info = str("%s  %s  %s" % (str(timestr), flag, str))
+			hFile = open('log.txt', 'a')
+			info = str("%s  %s  %s" % (str(timestr), flag, _str))
 			hFile.write(info)
 			hFile.write('\n')
 			hFile.close()
 		except BaseException as e:
 			self.label_state.setText("日志错误" + str(e))
+		return
+
+	def finishedFindMusic (self):
+		self.label_state.setText("本地音频匹配完成")
+		self.btn_Lrc.setEnabled(True)
+		for it in self.list:
+			if len(it['path']) == 0:
+				self.tableWidget.setItem(it['no'], 3, QTableWidgetItem('未找到本地音频'))
 		return
 
 	# 回调函数
@@ -255,8 +277,7 @@ class UI(QWidget):
 			self.pathShowInTable(args)
 			pass
 		elif code == StateCode.CallBackCode.MUSIC_PATH_END:
-			self.label_state.setText("本地音频匹配完成")
-			self.btn_Lrc.setEnabled(True)
+			self.finishedFindMusic()
 			pass
 		elif code == StateCode.CallBackCode.MUSIC_SERACH_CURRENT:
 			self.label_state.setText(str("正在查找：%s") % (args))

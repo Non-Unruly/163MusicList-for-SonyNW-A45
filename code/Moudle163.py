@@ -3,6 +3,7 @@ import os
 import os.path
 import requests
 import StateCode
+import time
 
 
 # 歌曲列表
@@ -61,7 +62,9 @@ def RequestLrc (list, callback):
 				isNoLrc = res.get('nolyric', False)
 				if isNoLrc:
 					callback(StateCode.CallBackCode.MUSIC_LRC_NONE, it)
+					continue
 				lrc = res['lrc']['lyric']
+				lrc = disposeLrc(lrc)
 				name, _format = splitNameFormat(it['path'])
 				lrcPath = name + '.lrc'
 				hFile = open(lrcPath, "w+", encoding = 'utf-8')
@@ -70,6 +73,7 @@ def RequestLrc (list, callback):
 				it['lrc'] = lrcPath
 				callback(StateCode.CallBackCode.MUSIC_LRC_RETURN, it)
 			else:
+				callback(StateCode.CallBackCode.MUSIC_LRC_NONE, it)
 				continue
 		except BaseException as e:
 			callback(StateCode.CallBackCode.MUSIC_LRC_ERROR, {'music': it, 'info': e})
@@ -77,28 +81,52 @@ def RequestLrc (list, callback):
 	return
 
 
+# 处理歌词字符，保证walkman能正确识别
+def disposeLrc (lrc):
+	data = ''
+	i = 0
+	while i < len(lrc):
+		time = ''
+		if lrc[i] == '[':
+			i += 1
+			while lrc[i] != ']':
+				time += lrc[i]
+				i += 1
+			if ':' in time and '.' in time:
+				if len(time) == 9:
+					time = time[0:8]
+			data += '[' + time + ']'
+		else:
+			data += lrc[i]
+		i += 1
+	return data
+
+
 def FindLocalMusic (path, list, callback):
-	for p in os.listdir(path):
-		thisPath = path + '/' + p
-		# print('---' + thisPath)
-		if (os.path.isdir(thisPath)):
-			# 如果是目录
-			FindLocalMusic(thisPath, list, callback)
-		elif (os.path.isfile(thisPath)):
-			# 如果是文件
-			print('----' + thisPath)
-			name, format = splitNameFormat(p)
-			callback(StateCode.CallBackCode.MUSIC_SERACH_CURRENT, p)
-			if format in FileFormat:
-				filename = characterCodeUnify(name)
-				for it in list:
-					name_in_list = characterCodeUnify(str("%s-%s" % (it['singer'], it['song'])))
-					if name_in_list == filename or (characterCodeUnify(it['singer']) in filename and characterCodeUnify(
-							it['song']) in filename):
-						# print(thisPath)
-						callback(StateCode.CallBackCode.MUSIC_PATH_RETURN, {'no': it['no'], 'path': thisPath})
-						break
-	callback(StateCode.CallBackCode.MUSIC_PATH_END, None)
+	try:
+		for p in os.listdir(path):
+			thisPath = path + '/' + p
+			# print('---' + thisPath)
+			if (os.path.isdir(thisPath)):
+				# 如果是目录
+				FindLocalMusic(thisPath, list, callback)
+			elif (os.path.isfile(thisPath)):
+				# 如果是文件
+				callback(StateCode.CallBackCode.MUSIC_SERACH_CURRENT, p)
+				name, format = splitNameFormat(p)
+				if format in FileFormat:
+					filename = characterCodeUnify(name)
+					for it in list:
+						name_in_list = characterCodeUnify(str("%s-%s" % (it['singer'], it['song'])))
+						if name_in_list == filename or (
+								characterCodeUnify(it['singer']) in filename and characterCodeUnify(
+								it['song']) in filename):
+							# print(thisPath)
+							callback(StateCode.CallBackCode.MUSIC_PATH_RETURN, {'no': it['no'], 'path': thisPath})
+							break
+		callback(StateCode.CallBackCode.MUSIC_PATH_END, None)
+	except BaseException as e:
+		print(e)
 	return
 
 
