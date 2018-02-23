@@ -5,6 +5,8 @@ import SonyManager
 import time
 from PyQt5.QtWidgets import QApplication, QWidget, QFileDialog, QHeaderView, QTableWidgetItem, QMessageBox, \
 	QAbstractItemView
+from PyQt5.QtCore import QAbstractTableModel
+from PyQt5.QtGui import QStandardItem
 from PyQt5.uic import loadUi
 
 import StateCode
@@ -14,7 +16,7 @@ import threading
 class UI(QWidget):
 	def __init__ (self):
 		super(QWidget, self).__init__()
-		loadUi("gui.bmui", self)
+		loadUi("gui.ui", self)
 		self.list = [None]
 		self.listName = ''
 		self.listCreator = ''
@@ -25,8 +27,8 @@ class UI(QWidget):
 		return
 
 	def initUI (self):
-		self.ListInfo.setText("本工具仅做个人学习python使用，不进行任何盈利行为")
-		self.label_state.setText("无节操测试版版本，不定时抽风，如有BUG，纯属故意")
+		self.ListInfo.setText("无节操测试版版本，不定时抽风，如有BUG，纯属故意")
+		self.label_state.setText("本工具仅做个人学习使用，免费共享")
 		self.setWindowTitle('索尼walkman导入网易云歌单歌词工具v0.233 ------  By BM_Recluse')
 		self.setLayout(self.mainLayout)
 		self.pathWidget.setLayout(self.pathLayout)
@@ -38,6 +40,8 @@ class UI(QWidget):
 		self.txt_playerDir.setText(self.m_playerDir)
 
 		self.tableWidget.setColumnWidth(0, 40)
+		# self.tableWidget.setColumnWidth(1, 200)
+		# self.tableWidget.setColumnWidth(2, 320)
 		self.tableWidget.setColumnWidth(3, 80)
 		self.tableWidget.setColumnWidth(4, 80)
 		self.tableWidget.setColumnWidth(5, 80)
@@ -45,11 +49,12 @@ class UI(QWidget):
 		self.tableWidget.horizontalHeader().setSectionResizeMode(2, QHeaderView.Stretch)
 		self.tableWidget.verticalHeader().setVisible(False)
 		self.tableWidget.setSelectionBehavior(QAbstractItemView.SelectRows)
+		self.tableWidget.setSelectionMode(QAbstractItemView.SingleSelection)
+		self.tableWidget.setEditTriggers(QAbstractItemView.NoEditTriggers)
 
 		self.btn_findLocalMusic.setEnabled(False)
 		self.btn_Lrc.setEnabled(False)
 
-		self.setFixedSize(580, 390)
 		return
 
 	def initData (self):
@@ -230,7 +235,7 @@ class UI(QWidget):
 	def noLrc (self, args):
 		print(args)
 		no = args['no']
-		self.tableWidget.setItem(no, 4, QTableWidgetItem('无歌词'))
+		self.tableWidget.setItem(no, 4, QTableWidgetItem('纯音乐'))
 		self.tableWidget.setCurrentCell(no, 4)
 		return
 
@@ -240,7 +245,7 @@ class UI(QWidget):
 		music = args['music']
 		errorinfo = args['info']
 		no = music['no']
-		self.tableWidget.setItem(no, 4, QTableWidgetItem('失败'))
+		self.tableWidget.setItem(no, 4, QTableWidgetItem('无歌词'))
 		self.tableWidget.setCurrentCell(no, 4)
 		self.writeLog('errorLog', str(errorinfo))
 		return
@@ -259,11 +264,15 @@ class UI(QWidget):
 		return
 
 	def finishedFindMusic (self):
-		self.label_state.setText("本地音频匹配完成")
-		self.btn_Lrc.setEnabled(True)
-		for it in self.list:
-			if len(it['path']) == 0:
-				self.tableWidget.setItem(it['no'], 3, QTableWidgetItem('未找到本地音频'))
+		try:
+			self.label_state.setText("本地音频匹配完成")
+			self.btn_Lrc.setEnabled(True)
+			for it in self.list:
+				if len(it['path']) == 0:
+					self.tableWidget.setItem(it['no'], 3, QTableWidgetItem('未找到本地音频'))
+			self.tableWidget.show()
+		except BaseException as e:
+			print(e)
 		return
 
 	# 回调函数

@@ -1,4 +1,3 @@
-import Netease163Manager
 import shutil
 import StateCode
 
@@ -46,7 +45,10 @@ def CopyMusic (list, path, callback):
 			musicname = it['path'].split('/')[-1]
 			lrcname = it['lrc'].split('/')[-1]
 			print(path + '/' + musicname)
-			shutil.copyfile(it['path'], path + '/' + musicname)
+			if len(it['path']) > 0:
+				shutil.copyfile(it['path'], path + '/' + musicname)
+			else:
+				continue
 			if len(it['lrc']) > 0:
 				shutil.copyfile(it['lrc'], path + '/' + lrcname)
 			callback(StateCode.CallBackCode.MUSIC_COPY_FILE, it)

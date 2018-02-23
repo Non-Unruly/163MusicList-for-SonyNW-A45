@@ -241,49 +241,6 @@ border-image:(&quot;./images/open.png&quot;)
       </widget>
      </widget>
     </item>
-    <item row="1" column="0">
-     <widget class="QTableWidget" name="tableWidget">
-      <attribute name="horizontalHeaderCascadingSectionResizes">
-       <bool>false</bool>
-      </attribute>
-      <attribute name="horizontalHeaderDefaultSectionSize">
-       <number>100</number>
-      </attribute>
-      <attribute name="verticalHeaderStretchLastSection">
-       <bool>true</bool>
-      </attribute>
-      <column>
-       <property name="text">
-        <string>序号</string>
-       </property>
-      </column>
-      <column>
-       <property name="text">
-        <string>歌曲文件名</string>
-       </property>
-      </column>
-      <column>
-       <property name="text">
-        <string>歌曲本地地址</string>
-       </property>
-      </column>
-      <column>
-       <property name="text">
-        <string>歌曲匹配</string>
-       </property>
-      </column>
-      <column>
-       <property name="text">
-        <string>歌词匹配</string>
-       </property>
-      </column>
-      <column>
-       <property name="text">
-        <string>导入状态</string>
-       </property>
-      </column>
-     </widget>
-    </item>
     <item row="2" column="0">
      <widget class="QWidget" name="pushWidget" native="true">
       <property name="minimumSize">
@@ -351,12 +308,55 @@ border-image:(&quot;./images/open.png&quot;)
            </size>
           </property>
           <property name="text">
-           <string>导入列表至WALKMAN</string>
+           <string>导入至WALKMAN</string>
           </property>
          </widget>
         </item>
        </layout>
       </widget>
+     </widget>
+    </item>
+    <item row="1" column="0">
+     <widget class="QTableWidget" name="tableWidget">
+      <attribute name="horizontalHeaderCascadingSectionResizes">
+       <bool>false</bool>
+      </attribute>
+      <attribute name="horizontalHeaderDefaultSectionSize">
+       <number>100</number>
+      </attribute>
+      <attribute name="verticalHeaderStretchLastSection">
+       <bool>true</bool>
+      </attribute>
+      <column>
+       <property name="text">
+        <string>序号</string>
+       </property>
+      </column>
+      <column>
+       <property name="text">
+        <string>歌曲文件名</string>
+       </property>
+      </column>
+      <column>
+       <property name="text">
+        <string>歌曲本地地址</string>
+       </property>
+      </column>
+      <column>
+       <property name="text">
+        <string>歌曲匹配</string>
+       </property>
+      </column>
+      <column>
+       <property name="text">
+        <string>歌词匹配</string>
+       </property>
+      </column>
+      <column>
+       <property name="text">
+        <string>导入状态</string>
+       </property>
+      </column>
      </widget>
     </item>
    </layout>

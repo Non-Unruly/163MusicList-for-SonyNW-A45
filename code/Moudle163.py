@@ -112,7 +112,7 @@ def FindLocalMusic (path, list, callback):
 				FindLocalMusic(thisPath, list, callback)
 			elif (os.path.isfile(thisPath)):
 				# 如果是文件
-				callback(StateCode.CallBackCode.MUSIC_SERACH_CURRENT, p)
+				#callback(StateCode.CallBackCode.MUSIC_SERACH_CURRENT, p)
 				name, format = splitNameFormat(p)
 				if format in FileFormat:
 					filename = characterCodeUnify(name)
@@ -121,7 +121,7 @@ def FindLocalMusic (path, list, callback):
 						if name_in_list == filename or (
 								characterCodeUnify(it['singer']) in filename and characterCodeUnify(
 								it['song']) in filename):
-							# print(thisPath)
+							#print(thisPath)
 							callback(StateCode.CallBackCode.MUSIC_PATH_RETURN, {'no': it['no'], 'path': thisPath})
 							break
 		callback(StateCode.CallBackCode.MUSIC_PATH_END, None)
