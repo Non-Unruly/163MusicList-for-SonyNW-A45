@@ -21,6 +21,6 @@ def LoadM3U(path):
         return False
 
 
-lst = LoadM3U("C:\\Users\\Administrator\\Desktop\\最近在听\\最近在听.m3u")
-for it in lst:
-    print(it)
+# lst = LoadM3U("C:\\Users\\Administrator\\Desktop\\最近在听\\最近在听.m3u")
+# for it in lst:
+#     print(it)

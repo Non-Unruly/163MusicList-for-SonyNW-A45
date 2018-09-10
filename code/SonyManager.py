@@ -38,6 +38,8 @@ def CreateM3U_inside(m3uPath, playList, listname, callback):
 
 
 def CopyMusic(list, path, callback):
+    for it in list:
+        print(it)
     if len(list) <= 0:
         return
     try:
