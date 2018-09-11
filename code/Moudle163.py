@@ -18,36 +18,39 @@ FileFormat = ['mp3', "wma", 'flac', 'wav', 'aac', 'dsd', 'ape', 'mqa', 'MP3', 'W
 # id - 歌单id
 # 返回 歌单信息
 def RequestList(id,cookie, callback):
-    id = str(id)
-    url = "http://music.163.com/api/playlist/detail?id=" + id
-    headers = {'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-               'Accept-Language': 'zh-CN,zh;q=0.8',
-               'Accept-Encoding': 'gzip,deflate',
-               'User-Agent': 'User-Agent: Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.26 Safari/537.36 Core/1.63.5478.400 QQBrowser/10.1.1550.400',
-               'Upgrade-Insecure-Requests': '1',
-               'Connection': 'keep-alive',
-               'Host': 'music.163.com'}
-
-    data = requests.get(url, headers=headers, cookies=cookieDict(cookie))
-    if data.status_code != 200:
-        return StateCode.CallBackCode.REQUEST_ERROR
-    info = json.loads(data.text)
-    res = info.get('result', None)
-    ListName = None
-    Creator = None
-    if res == None or res['creator'] == None:
-        callback(StateCode.CallBackCode.UNKNOW_ERROR, None)
-        return
-    ListName = res['name']  # 歌单名称
-    Creator = res['creator']['nickname']  # 歌单创建者
-    m_MusicList = {'listname': ListName, 'creator': Creator, 'list': []}
-    lst = res['tracks']
-    i = 0
-    for it in lst:
-        m_MusicList['list'].append(
-            {'song': it['name'], 'singer': it['artists'][0]['name'], 'id': it['id'], 'path': '', 'no': i, 'lrc': ''})
-        i = i + 1
-    callback(StateCode.CallBackCode.MUSIC_LIST_RETURN, m_MusicList)
+    try:
+        id = str(id)
+        url = "http://music.163.com/api/playlist/detail?id=" + id
+        headers = {'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                   'Accept-Language': 'zh-CN,zh;q=0.8',
+                   'Accept-Encoding': 'gzip,deflate',
+                   'User-Agent': 'User-Agent: Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.26 Safari/537.36 Core/1.63.5478.400 QQBrowser/10.1.1550.400',
+                   'Upgrade-Insecure-Requests': '1',
+                   'Connection': 'keep-alive',
+                   'Host': 'music.163.com'}
+        data = requests.get(url, headers=headers, cookies=cookieDict(cookie))
+        if data.status_code != 200:
+            return StateCode.CallBackCode.REQUEST_ERROR
+        info = json.loads(data.text)
+        res = info.get('result', None)
+        ListName = None
+        Creator = None
+        if res == None or res['creator'] == None:
+            callback(StateCode.CallBackCode.UNKNOW_ERROR, None)
+            return
+        ListName = res['name']  # 歌单名称
+        Creator = res['creator']['nickname']  # 歌单创建者
+        m_MusicList = {'listname': ListName, 'creator': Creator, 'list': []}
+        lst = res['tracks']
+        i = 0
+        for it in lst:
+            m_MusicList['list'].append(
+                {'song': it['name'], 'singer': it['artists'][0]['name'], 'id': it['id'], 'path': '', 'no': i, 'lrc': ''})
+            i = i + 1
+        callback(StateCode.CallBackCode.MUSIC_LIST_RETURN, m_MusicList)
+    except BaseException as e:
+        print("未知错误，请检查cookie或者歌单信息")
+        callback(StateCode.CallBackCode.UNKNOW_ERROR,None)
     pass
 
 
@@ -129,6 +132,7 @@ def FindLocalMusic(path, list, callback):
                             it['song']) in filename):
                             # print(thisPath)
                             callback(StateCode.CallBackCode.MUSIC_PATH_RETURN, {'no': it['no'], 'path': thisPath})
+                            time.sleep(0.003)
                             break
         callback(StateCode.CallBackCode.MUSIC_PATH_END, None)
     except BaseException as e:
@@ -161,6 +165,8 @@ def characterCodeUnify(data):
 
 # 读取本机cookie
 def cookieDict(data):
+    if len(data)==0:
+        return None
     cookie = {}
     for line in data.split(";"):
         name, value = line.strip().split("=", 1)

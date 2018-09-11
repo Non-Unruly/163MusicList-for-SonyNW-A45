@@ -21,7 +21,7 @@ class UI(QWidget):
         self.list = [None]
         self.listName = ''
         self.listCreator = ''
-
+        self.cookie=''
         self.initData()
         self.initUI()
         self.initBinding()
@@ -70,6 +70,7 @@ class UI(QWidget):
             info = json.loads(data)
             self.m_musicDir = info['musicDir']
             self.m_playerDir = info['playerDir']
+            self.cookie=info['cookie']
             hFile.close()
         except BaseException:
             self.m_musicDir = ''
@@ -84,7 +85,17 @@ class UI(QWidget):
         self.btn_findLocalMusic.clicked.connect(self.slot_findLocalMusic)
         self.btn_Lrc.clicked.connect(self.slot_createLrc)
         self.tableWidget.cellDoubleClicked.connect(self.slot_tableDClicked)
+        self.btn_cookie.clicked.connect(self.slot_cookie)
         return
+
+    def slot_cookie(self):
+        self.getCookie=CookieUI.CookieUI()
+        if len(self.cookie)>0:
+            self.getCookie.hasCookie(self.cookie)
+        self.getCookie.exec()
+        self.cookie=self.getCookie.cookie
+        self.getCookie.deleteLater()
+        pass
 
     def slot_chooseMusicPath(self):
         dir = QFileDialog.getExistingDirectory()
@@ -97,12 +108,6 @@ class UI(QWidget):
         return
 
     def slot_findMusic(self):
-        self.cookie=CookieUI.CookieUI()
-        self.cookie.exec()
-        strCookie=self.cookie.cookie
-        self.cookie.deleteLater()
-
-        print(strCookie)
         self.list.clear()
         self.btn_Lrc.setEnabled(False)
         findPath = self.txt_musicDir.text()
@@ -130,7 +135,7 @@ class UI(QWidget):
         self.tableWidget.clearContents()
         self.writeConfig(self.txt_musicDir.text(), self.txt_playerDir.text())
 
-        threading._start_new_thread(Moudle163.RequestList, (idstr, strCookie,self.CallBack))
+        threading._start_new_thread(Moudle163.RequestList, (idstr, self.cookie,self.CallBack))
         return
 
     def slot_copyMusic(self):
@@ -175,7 +180,7 @@ class UI(QWidget):
     def writeConfig(self, _musicDir, _playerDir):
         try:
             hFile = open("config.cfg", 'w+')
-            data = {"musicDir": _musicDir, "playerDir": _playerDir}
+            data = {"musicDir": _musicDir, "playerDir": _playerDir,"cookie":self.cookie}
             info = json.dumps(data)
             hFile.write(str(info))
             hFile.close()
@@ -218,6 +223,7 @@ class UI(QWidget):
             path = args['path']
             self.tableWidget.setItem(no, 2, QTableWidgetItem(path))
             self.tableWidget.setItem(no, 3, QTableWidgetItem('匹配'))
+            self.tableWidget.setCurrentCell(no,0)
             # self.tableWidget.setCurrentCell(no, 2)
             for i in range(len(self.list)):
                 if self.list[i]['no'] == no:
