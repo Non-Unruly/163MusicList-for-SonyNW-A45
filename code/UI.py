@@ -9,7 +9,7 @@ from PyQt5.QtCore import QAbstractTableModel
 from PyQt5.QtGui import QStandardItem
 from PyQt5.uic import loadUi
 import CookieUI
-
+import Manager
 import StateCode
 import threading
 
@@ -21,7 +21,7 @@ class UI(QWidget):
         self.list = [None]
         self.listName = ''
         self.listCreator = ''
-        self.cookie=''
+        self.cookie = ''
         self.initData()
         self.initUI()
         self.initBinding()
@@ -70,7 +70,7 @@ class UI(QWidget):
             info = json.loads(data)
             self.m_musicDir = info['musicDir']
             self.m_playerDir = info['playerDir']
-            self.cookie=info['cookie']
+            self.cookie = info['cookie']
             hFile.close()
         except BaseException:
             self.m_musicDir = ''
@@ -86,14 +86,15 @@ class UI(QWidget):
         self.btn_Lrc.clicked.connect(self.slot_createLrc)
         self.tableWidget.cellDoubleClicked.connect(self.slot_tableDClicked)
         self.btn_cookie.clicked.connect(self.slot_cookie)
+        self.btn_Edit.clicked.connect(self.slot_editor)
         return
 
     def slot_cookie(self):
-        self.getCookie=CookieUI.CookieUI()
-        if len(self.cookie)>0:
+        self.getCookie = CookieUI.CookieUI()
+        if len(self.cookie) > 0:
             self.getCookie.hasCookie(self.cookie)
         self.getCookie.exec()
-        self.cookie=self.getCookie.cookie
+        self.cookie = self.getCookie.cookie
         self.getCookie.deleteLater()
         pass
 
@@ -123,7 +124,7 @@ class UI(QWidget):
         index += 3
         idstr = ''
         while True:
-            if index>=len(listid):
+            if index >= len(listid):
                 break
             if ord(listid[index]) >= ord('0') and ord(listid[index]) <= ord('9'):
                 idstr += listid[index]
@@ -135,13 +136,18 @@ class UI(QWidget):
         self.tableWidget.clearContents()
         self.writeConfig(self.txt_musicDir.text(), self.txt_playerDir.text())
 
-        threading._start_new_thread(Moudle163.RequestList, (idstr, self.cookie,self.CallBack))
+        threading._start_new_thread(Moudle163.RequestList, (idstr, self.cookie, self.CallBack))
         return
 
     def slot_copyMusic(self):
         self.writeConfig(self.txt_musicDir.text(), self.txt_playerDir.text())
         threading._start_new_thread(SonyManager.CopyMusic,
                                     (self.list, self.txt_playerDir.text(), self.CallBack))
+        return
+
+    def slot_editor(self):
+        dlg = Manager.Manager()
+        dlg.exec()
         return
 
     def slot_findLocalMusic(self):
@@ -169,10 +175,10 @@ class UI(QWidget):
             return
         print(file)
         # print(self.list)
-        no=row
+        no = row
         print(no)
-        if no==self.list[no]["no"]:
-            self.list[no]["path"]=file
+        if no == self.list[no]["no"]:
+            self.list[no]["path"] = file
         self.tableWidget.setItem(row, col, QTableWidgetItem(file))
         pass
 
@@ -180,7 +186,7 @@ class UI(QWidget):
     def writeConfig(self, _musicDir, _playerDir):
         try:
             hFile = open("config.cfg", 'w+')
-            data = {"musicDir": _musicDir, "playerDir": _playerDir,"cookie":self.cookie}
+            data = {"musicDir": _musicDir, "playerDir": _playerDir, "cookie": self.cookie}
             info = json.dumps(data)
             hFile.write(str(info))
             hFile.close()
@@ -223,7 +229,7 @@ class UI(QWidget):
             path = args['path']
             self.tableWidget.setItem(no, 2, QTableWidgetItem(path))
             self.tableWidget.setItem(no, 3, QTableWidgetItem('匹配'))
-            self.tableWidget.setCurrentCell(no,0)
+            self.tableWidget.setCurrentCell(no, 0)
             # self.tableWidget.setCurrentCell(no, 2)
             for i in range(len(self.list)):
                 if self.list[i]['no'] == no:
